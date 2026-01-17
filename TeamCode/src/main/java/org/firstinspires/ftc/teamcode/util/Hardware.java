@@ -14,7 +14,8 @@ public class Hardware {
     public DcMotor intake;
     public DcMotor mid1;
     public DcMotor mid2;
-    public DcMotor outtake;
+    public DcMotor outtakeL;
+    public DcMotor outtakeR;
     public HuskyLens lens;
 
     public void init(HardwareMap hardwareMap) {
@@ -25,18 +26,19 @@ public class Hardware {
 
         intake = hardwareMap.get(DcMotor.class, "intake");
 
-        mid1 = hardwareMap.get(DcMotor.class, "mid1");
-        mid2 = hardwareMap.get(DcMotor.class, "mid2");
+        //mid1 = hardwareMap.get(DcMotor.class, "mid1");
+        //mid2 = hardwareMap.get(DcMotor.class, "mid2");
 
-        outtake = hardwareMap.get(DcMotor.class, "flywheel");
+        outtakeL = hardwareMap.get(DcMotor.class, "outL");
+        outtakeR = hardwareMap.get(DcMotor.class, "outR");
 
-        lens = hardwareMap.get(HuskyLens.class, "lens");
+        //lens = hardwareMap.get(HuskyLens.class, "lens");
 
         frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
         backRight.setDirection(DcMotorSimple.Direction.REVERSE);
-        outtake.setDirection(DcMotorSimple.Direction.REVERSE);
+        outtakeL.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotorSimple.Direction.REVERSE);
-        mid1.setDirection(DcMotorSimple.Direction.REVERSE);
+        //mid1.setDirection(DcMotorSimple.Direction.REVERSE);
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
