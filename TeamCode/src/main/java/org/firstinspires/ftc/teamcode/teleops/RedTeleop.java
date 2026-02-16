@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.teleops;
 import static java.lang.Math.abs;
 
 import com.qualcomm.hardware.dfrobot.HuskyLens;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -12,18 +13,55 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 //import org.firstinspires.ftc.teamcode.utilscripts.CamHandler;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
+import org.firstinspires.ftc.teamcode.subsystems.Limelight;
+
 @Disabled
-@TeleOp(name="OLD - Decode Blue", group="99 - Depricated scripts")
-public class OldBlueTeleop extends LinearOpMode {
+@TeleOp(name="Limelight - Decode Red", group="0 - current scripts")
+public class RedTeleop extends LinearOpMode {
     final boolean DEBUG = true; //true;
+    final boolean LOCATIONDATA = true;
 
     private final double encoderPPR = 537.7 * 2; // the gear ratio
 
     private VoltageSensor expansionHubVoltageSensor;
+
+    double lastTimeNano;
+    double lastEncoderPositionL;
+    double lastEncoderPositionR;
+
+    DcMotor leftLauncher;
+    DcMotor rightLauncher;
+
+    final double encoderResolutionTPR = 28.0;
+
+    public double getRPM() {
+        long now = System.nanoTime();
+
+        double dt = (now - lastTimeNano) / 1e9;
+        if (dt <= 0) return 0;
+
+        double currentL = leftLauncher.getCurrentPosition();
+        double currentR = rightLauncher.getCurrentPosition();
+
+        double deltaL = currentL - lastEncoderPositionL;
+        double deltaR = currentR - lastEncoderPositionR;
+
+        lastEncoderPositionL = currentL;
+        lastEncoderPositionR = currentR;
+        lastTimeNano = now;
+
+        double leftRPM = (deltaL / encoderResolutionTPR) / dt * 60.0;
+        double rightRPM = (deltaR / encoderResolutionTPR) / dt * 60.0;
+
+        return (leftRPM + rightRPM) / 2.0;
+    }
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -33,7 +71,7 @@ public class OldBlueTeleop extends LinearOpMode {
         DcMotor backRightMotor = hardwareMap.dcMotor.get("RB");
 
         double target = 0;
-        PIDController manipPID = new PIDController(0.0075, 0, 0); //0.005); // TODO - Tune these!
+        PIDController manipPID = new PIDController(0.0075, 0, 0); //0.005);
 
         DcMotor manipulator = hardwareMap.dcMotor.get("bigWheel");
         manipulator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -69,8 +107,8 @@ public class OldBlueTeleop extends LinearOpMode {
 
         expansionHubVoltageSensor = hardwareMap.get(VoltageSensor.class, "Expansion Hub 1");
 
-        DcMotor leftLauncher = hardwareMap.dcMotor.get("outL");
-        DcMotor rightLauncher = hardwareMap.dcMotor.get("outR");
+        leftLauncher = hardwareMap.dcMotor.get("outL");
+        rightLauncher = hardwareMap.dcMotor.get("outR");
 
         rightLauncher.setDirection(DcMotorSimple.Direction.REVERSE); // make both spin same way
 
@@ -82,13 +120,30 @@ public class OldBlueTeleop extends LinearOpMode {
 
         double gameOffset = 0;
 
-
+        Limelight camera = new Limelight(hardwareMap.get(Limelight3A.class, "limelight"), imu.getRobotYawPitchRollAngles());
 
         waitForStart();
+
+        camera.setTargetTag(24); //is RED, 20 is BLUE
+
+        camera.start();
+
+
+
 
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
+            //Update the camera's data
+
+            double dist = camera.update(imu.getRobotYawPitchRollAngles());
+
+            if (DEBUG || LOCATIONDATA) {
+                if (dist != 0) {
+                    telemetry.addData("distance", dist);
+                }
+            }
+
             double y = -gamepad1.left_stick_y; // Remember, I have no idea why every stick value is reversed
             double x = gamepad1.left_stick_x;
             double rx = gamepad1.right_stick_x;
@@ -100,19 +155,21 @@ public class OldBlueTeleop extends LinearOpMode {
             double launchStrength = 0;
 
             if(gamepad2.dpad_right) {
-                launchStrength = 0.35;// big half
+                launchStrength = 0.33;// big half
                 camAim = true;
             }else if (gamepad2.dpad_down) {
-                launchStrength = 0.35; // wall
+                launchStrength = 0.31 ; // wall
             } else if (gamepad2.dpad_up) {
-                launchStrength = 0.395; // big vertex
+                launchStrength = 0.35; // big vertex
                 camAim = true;
             } else if (gamepad2.dpad_left) { //far vertex
-                launchStrength = 0.4667;
+                launchStrength = 0.4075; //144 inch
                 //imuAim = true;
             } else if (gamepad2.b) {
                 launchStrength = gamepad2.right_trigger;
             }
+
+            telemetry.addData("RAW input power", launchStrength);
 
             CurrentVoltagePercentage = nominalVoltage / expansionHubVoltageSensor.getVoltage();
 
@@ -123,6 +180,8 @@ public class OldBlueTeleop extends LinearOpMode {
 
             leftLauncher.setPower(-launchStrength);
             rightLauncher.setPower(-launchStrength);
+
+            telemetry.addData("launcher RPM", getRPM());
 
             if (launchStrength > 0.05) {
                 telemetry.addData("Shooting", true);
@@ -163,7 +222,7 @@ public class OldBlueTeleop extends LinearOpMode {
 
             double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
-            if (DEBUG) {telemetry.addData("Heading", imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));}
+            if (DEBUG || LOCATIONDATA) {telemetry.addData("Heading", imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES));}
 
             // Rotate the movement direction counter to the bot's rotation
             double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -189,26 +248,26 @@ public class OldBlueTeleop extends LinearOpMode {
                 telemetry.addData("Back Right Power", backRightPower);
             }
 
-            setPowerSafe(frontLeftMotor, frontLeftPower);
-            setPowerSafe(backLeftMotor, backLeftPower);
-            setPowerSafe(frontRightMotor, frontRightPower);
-            setPowerSafe(backRightMotor, backRightPower);
+            frontLeftMotor.setPower(frontLeftPower); //setPowerSafe(frontLeftMotor, frontLeftPower);
+            backLeftMotor.setPower(backLeftPower);//setPowerSafe(backLeftMotor, backLeftPower);
+            frontRightMotor.setPower(frontRightPower);//setPowerSafe(frontRightMotor, frontRightPower);
+            backRightMotor.setPower(backRightPower);//setPowerSafe(backRightMotor, backRightPower);
 
             boolean a = gamepad1.a;
             boolean b = gamepad1.b;
 
             DcMotor intake = hardwareMap.dcMotor.get("intake");
             if (a){
-                setPowerSafe(intake, 1);
+                intake.setPower(1);
                 //gamepad1.setLedColor(0,255,0,100);
                 telemetry.addData("Intakeing", true);
             } else if (b) {
-                setPowerSafe(intake, -1);
+                intake.setPower(-1);
                 //gamepad1.setLedColor(255,0,0,100);
                 telemetry.addData("Outakeing", true);
             } else{
                 //gamepad1.setLedColor(255,255,255,100);
-                setPowerSafe(intake, 0);
+                intake.setPower(0);
             }
 
             //manip part
@@ -233,7 +292,15 @@ public class OldBlueTeleop extends LinearOpMode {
 
             manipPID.setTarget(target + gameOffset);
             double manipPower = manipPID.calculateOutput(manipulator.getCurrentPosition());
-            if(abs(manipPower) < 0.1){ manipPower = 0; } // no more EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
+            if(abs(manipPower) < 0.1){ manipPower = 0; // no more EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                //manipulator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT); //let it float into place
+            }else{
+                manipulator.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            }
+
+
             if(!(abs(manipPID.getError(manipulator.getCurrentPosition())) < 2.5)) {
                 manipulator.setPower(manipPower/1.5);
             }
@@ -253,14 +320,14 @@ public class OldBlueTeleop extends LinearOpMode {
             telemetry.update();
         }
     }
-
-    public void setPowerSafe(DcMotor motor, double targetPower){
-        final double SLEW_RATE = 0.2;
-        double currentPower = motor.getPower();
-
-        double desiredChange = targetPower - currentPower;
-        double limitedChange = Math.max(-SLEW_RATE, Math.min(desiredChange, SLEW_RATE));
-
-        motor.setPower(currentPower += limitedChange);
-    }
+    //I remmeber when our power switch sucked
+//    public void setPowerSafe(DcMotor motor, double targetPower){
+//        final double SLEW_RATE = 0.2;
+//        double currentPower = motor.getPower();
+//
+//        double desiredChange = targetPower - currentPower;
+//        double limitedChange = Math.max(-SLEW_RATE, Math.min(desiredChange, SLEW_RATE));
+//
+//        motor.setPower(currentPower += limitedChange);
+//    }
 }

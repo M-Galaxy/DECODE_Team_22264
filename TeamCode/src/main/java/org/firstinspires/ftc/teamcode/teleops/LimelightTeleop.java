@@ -3,8 +3,10 @@ package org.firstinspires.ftc.teamcode.teleops;
 import static java.lang.Math.abs;
 
 import com.qualcomm.hardware.dfrobot.HuskyLens;
+import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,10 +23,11 @@ import org.firstinspires.ftc.teamcode.util.PIDController;
 
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
 
+@Disabled
 @TeleOp(name="Limelight - Decode Blue", group="0 - current scripts")
 public class LimelightTeleop extends LinearOpMode {
-    final boolean DEBUG = true; //true;
-    final boolean LOCATIONDATA = true;
+    final boolean DEBUG = false; //true;
+    final boolean LOCATIONDATA = false; //true;
 
     private final double encoderPPR = 537.7 * 2; // the gear ratio
 
@@ -132,8 +135,6 @@ public class LimelightTeleop extends LinearOpMode {
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
-            //Update the camera's data
-
             double dist = camera.update(imu.getRobotYawPitchRollAngles());
 
             if (DEBUG || LOCATIONDATA) {

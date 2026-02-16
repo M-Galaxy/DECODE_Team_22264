@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode.teleops;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.subsystems.Launcher;
 
+@Disabled
 @TeleOp(name = "Launcher RPM Tuning", group = "Tuning")
 public class ValueTuningTeleop extends LinearOpMode {
 

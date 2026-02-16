@@ -25,8 +25,21 @@ public class Limelight {
         limelight.start();
     }
 
+    public void swichPipe(int index){
+        limelight.pipelineSwitch(index);
+    }
+
     public void setTargetTag(double targetTag) {
         this.targetTag = targetTag;
+
+    }
+
+    public LLResult GetResult(){
+        LLResult result = limelight.getLatestResult();
+
+        if (result == null || !result.isValid()) return null;
+
+        return result;
     }
 
     public int getObelisk() {
@@ -86,5 +99,28 @@ public class Limelight {
             return 0;
         }
     }
+
+    public double getTargetXError() {
+        LLResult result = limelight.getLatestResult();
+        if (result == null || result.getFiducialResults().isEmpty()) return 0;
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag == null) continue;
+
+            if (tag.getFiducialId() == targetTag) {
+                double tx = result.getTx(); // degrees
+
+                double horizontalFOV = 59.6;
+                double imageWidth = 320.0;
+
+                return (tx / horizontalFOV) * imageWidth;
+            }
+        }
+        return 0;
+    }
+
+
+
+
 
 }

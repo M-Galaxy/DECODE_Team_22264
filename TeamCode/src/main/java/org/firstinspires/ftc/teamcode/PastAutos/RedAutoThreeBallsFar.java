@@ -1,9 +1,11 @@
-package org.firstinspires.ftc.teamcode.autos.Main;
+package org.firstinspires.ftc.teamcode.PastAutos;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -15,10 +17,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
-@Autonomous(name="BLUE - FAR - 6 BALL", group="0")
-public class BlueAutoBallSixFar extends LinearOpMode {
-//kp 0.008
-    PIDController manipPID = new PIDController(0.0075, 0, 0);
+@Disabled
+@Autonomous(name="RED - FAR - 3 BALL", group="1")
+public class RedAutoThreeBallsFar extends LinearOpMode {
+
+    PIDController manipPID = new PIDController(0.008, 0, 0);
 
     private VoltageSensor expansionHubVoltageSensor;
 
@@ -31,9 +34,6 @@ public class BlueAutoBallSixFar extends LinearOpMode {
                 new RevHubOrientationOnRobot(
                         RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
                         RevHubOrientationOnRobot.UsbFacingDirection.RIGHT)));
-
-        // == INTAKE ==
-        DcMotor intake = hardwareMap.dcMotor.get("intake");
 
         // === PINPOINT ===
         GoBildaPinpointDriver pinpoint =
@@ -95,9 +95,21 @@ public class BlueAutoBallSixFar extends LinearOpMode {
 
 
         // Get Obelisk detection
-        int obelisk = camera.getObelisk();
-        telemetry.addData("Detected Obelisk", obelisk);
-        telemetry.update();
+        int tagID = 21;
+
+        camera.update(imu.getRobotYawPitchRollAngles());
+
+        LLResult Result = camera.GetResult();
+        int i = 0;
+        while (i < 10) {
+            Result = camera.GetResult();
+            i += 1;
+        }
+
+        if (Result != null) {
+            telemetry.addData("TAG OUTPUT", Result.getFiducialResults().get(0).getFiducialId());
+            tagID = Result.getFiducialResults().get(0).getFiducialId();
+        }
 
         // Wait 5 seconds so you can read it
         //sleep(5000);
@@ -106,64 +118,56 @@ public class BlueAutoBallSixFar extends LinearOpMode {
         double startHeading =
                 imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES) + 180;
 
-        // drive forward 4 inches
-        driveForwardInches(4, 0.35, lf, lb, rf, rb, pinpoint);
+        // drive forward 9 inches
+        driveForwardInches(9, 0.35, lf, lb, rf, rb, pinpoint);
 
 
-    // turn 20 deg CCW
-        turnToAngle(startHeading + 22.5, imu, lf, lb, rf, rb);
+        // turn 20 deg CCW
+        turnToAngle(startHeading - 22.5, imu, lf, lb, rf, rb);
 
 
-        double launchStrength = 0.425;
+        double launchStrength = 0.45;
 
         double CurrentVoltagePercentage = nominalVoltage / expansionHubVoltageSensor.getVoltage();
 
         launchStrength *= CurrentVoltagePercentage;
 
-    // spin shooters
+        // spin shooters
         outL.setPower(-launchStrength);
         outR.setPower(-launchStrength);
         sleep(700);
 
-    // fire 3
-        doManipAndShoot(manip, 1.0 / 6.0); //so it stops a little short
-        sleep(750);
-        doManipAndShoot(manip, 1.0 / 3.0);
-        sleep(750);
-        doManipAndShoot(manip, 1.0 / 3.0);
-       sleep(750);
-        doManipAndShoot(manip, 1.0 / 6.0);
-        sleep(750);
-    // turn back to original heading
+        // fire 3
+        if (tagID == 21) {
+            doManipAndShoot(manip, 1.0 / 6.0); //Green
+            sleep(750);
+            doManipAndShoot(manip, 1.0 / 3.0); //Purple
+            sleep(750);
+            doManipAndShoot(manip, 1.0 / 3.0); //Purple
+            sleep(750);
+        }
+        else if(tagID == 22){
+            doManipAndShoot(manip, -1.0 / 6.0); //Purple
+            sleep(750);
+            doManipAndShoot(manip, 1.0 / 3.0); //Green
+            sleep(750);
+            doManipAndShoot(manip, 1.0 / 3.0); //Purple
+            sleep(750);
+        } else if (tagID == 23) {
+            doManipAndShoot(manip, -1.0 / 6.0); //Purple
+            sleep(750);
+            doManipAndShoot(manip, -1.0 / 3.0); //Green
+            sleep(750);
+            doManipAndShoot(manip, -1.0 / 3.0); //Purple
+            sleep(750);
+        }
+
+        // turn back to original heading
         turnToAngle(startHeading, imu, lf, lb, rf, rb);
 
-    // drive forward again 24 icnh
-        driveForwardInches(20, 0.7, lf, lb, rf, rb, pinpoint);//0.4
+        // drive forward again 10 icnh
+        driveForwardInches(10, 0.4, lf, lb, rf, rb, pinpoint);
 
-
-        turnToAngle(startHeading + 90, imu, lf, lb, rf, rb);
-
-        intake.setPower(1);
-
-        driveForwardInches(19, 0.5, lf, lb, rf, rb, pinpoint);
-
-        driveForwardInches(6, 0.1, lf, lb, rf, rb, pinpoint);// this is moving  little
-
-        doManipAndShoot(manip, 1.0 / 3.0);
-
-        driveForwardInches(6, 0.1, lf, lb, rf, rb, pinpoint);// this is moving  little
-
-        doManipAndShoot(manip, 1.0 / 3.0);
-
-        driveForwardInches(6, 0.1, lf, lb, rf, rb, pinpoint);// this is moving  little
-
-        turnToAngle(startHeading + 90, imu, lf, lb, rf, rb); //turn around
-
-        intake.setPower(0);
-
-        driveForwardInches(38, 0.4, lf, lb, rf, rb, pinpoint);// drive back to start
-
-        turnToAngle(startHeading + 22.5, imu, lf, lb, rf, rb);//shoot again
 
         // stop everything
         outL.setPower(0);
@@ -180,23 +184,18 @@ public class BlueAutoBallSixFar extends LinearOpMode {
             GoBildaPinpointDriver pinpoint
     ) {
         pinpoint.update();
-        double startX = pinpoint.getPosition().getX(DistanceUnit.INCH);
         double startY = pinpoint.getPosition().getY(DistanceUnit.INCH);
 
         long startTime = System.currentTimeMillis();
-        long timeoutMs = Math.max(2500, (long)(inches / 0.2 * 1000)); // scale timeout with distance
+        long timeoutMs = 2500; // safety
 
         while (opModeIsActive()) {
             pinpoint.update();
-            double currentX = pinpoint.getPosition().getX(DistanceUnit.INCH);
             double currentY = pinpoint.getPosition().getY(DistanceUnit.INCH);
+            double traveled = Math.abs(currentY - startY);
 
-            double dx = currentX - startX;
-            double dy = currentY - startY;
-            double traveled = Math.sqrt(dx*dx + dy*dy);
-
-            telemetry.addData("Pinpoint X", currentX);
             telemetry.addData("Pinpoint Y", currentY);
+            telemetry.addData("Start Y", startY);
             telemetry.addData("Traveled (in)", traveled);
             telemetry.addData("Target (in)", inches);
             telemetry.update();
@@ -204,7 +203,6 @@ public class BlueAutoBallSixFar extends LinearOpMode {
             if (traveled >= inches) break;
             if (System.currentTimeMillis() - startTime > timeoutMs) break;
 
-            // Maintain direction based on current heading
             lf.setPower(power);
             lb.setPower(power);
             rf.setPower(power);
@@ -218,9 +216,8 @@ public class BlueAutoBallSixFar extends LinearOpMode {
 
         telemetry.addLine("Drive segment complete");
         telemetry.update();
-        //sleep(100);
+        sleep(100);
     }
-
 
 
     // =====================================================
@@ -243,8 +240,8 @@ public class BlueAutoBallSixFar extends LinearOpMode {
             telemetry.addData("Error", error);
             telemetry.update();
 
-            if (Math.abs(error) < 0.25) break; // 1
-            if (System.currentTimeMillis() - start > 1500) break;
+            if (Math.abs(error) < 1.0) break;
+            if (System.currentTimeMillis() - start > 2000) break;
 
             double power = error * kP;
             power = Math.max(-0.25, Math.min(0.25, power));
@@ -287,7 +284,7 @@ public class BlueAutoBallSixFar extends LinearOpMode {
         }
 
         manip.setPower(0);
-        //sleep(250);
+        sleep(250);
         manip.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
